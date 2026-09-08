@@ -93,13 +93,37 @@ function validateValue(strVal, min, max) {
             return { valid: false, error: `Значение должно быть не больше ${max}` };
         }
     }
-    return { valid: true, floatValue: parseFloat(str) };
+    return { valid: true, value: str};
 }
 
-function checkHit(x, y, r) {
-    if (x <= 0 && x >= -r && y >= 0 && y <= r / 2) { return true; }
-    if (x >= 0 && y >= 0 && y <= (-x / 2 + r / 2)) { return true; }
-    if (x <= 0 && y <= 0 && (x * x + y * y <= (r / 2) * (r / 2))) return true;
+function toScaledBigInt(strX, strY, strR) {
+    const getDecLen = (s) => s.includes('.') ? s.split('.')[1].length : 0;
+
+    const maxDec = Math.max(getDecLen(strX), getDecLen(strY), getDecLen(strR));
+
+    const scale = (str) => {
+        let [intP, decP = ''] = str.replace('-', '').split('.');
+        decP = decP.padEnd(maxDec, '0');
+        let sign = str.startsWith('-') ? -1n : 1n;
+        return BigInt(intP + decP) * sign;
+    };
+
+    return [scale(strX), scale(strY), scale(strR)];
+}
+
+function checkHit(strX, strY, strR) {
+    const [x, y, r] = toScaledBigInt(strX.toString(), strY.toString(), strR.toString());
+
+    if (x <= 0n && x >= -r && y >= 0n && y*2n <= r) {
+        return true;
+    }
+    if (x >= 0n && y >= 0n && 2n*y <= r - x) {
+        return true;
+    }    
+    if (x <= 0n && y <= 0n && 4n*(x * x + y * y) <= r * r) {
+        return true;
+    }
+
     return false;
 }
 
@@ -127,8 +151,8 @@ function handleFormSubmit(event) {
 
     if (hasError) { return; }
 
-    const x = xValidation.floatValue;
-    const r = rValidation.floatValue;
+    const x = xValidation.value;
+    const r = rValidation.value;
     const y = parseFloat(yInput.value);
 
     const isHit = checkHit(x, y, r);
@@ -283,4 +307,3 @@ function drawShapes(r) {
 }
 
 init();
-
